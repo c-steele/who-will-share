@@ -13,6 +13,7 @@ footer{background:white;border-top:1px solid var(--line);padding:10px 20px;displ
 @media(max-width:780px){header{gap:9px;flex-wrap:wrap;padding:9px 12px}h1{font-size:17px}.play{font-size:13px}.rail{display:none}main{grid-template-columns:1fr}.toolbar{padding:8px 10px;gap:6px}.stage{padding:8px}footer{padding:9px 12px}.cards{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}#mobileGroup{display:block;font-size:12px;max-width:42vw}}
 @media(min-width:781px){#mobileGroup{display:none}}
 @media(max-width:490px){header h1{flex:1 1 52%}header .play{order:0}header #study,header #wording{order:1}header #study{max-width:58vw}header select{font-size:13px}footer{flex-wrap:wrap;gap:6px}.caption{flex-basis:100%}.toolbarTitle{display:none}.toolbar{justify-content:space-between}.ctl{padding:4px 7px}#here{white-space:normal}}
+@media(max-width:490px){.toolbar{display:grid;grid-template-columns:1fr auto auto auto;gap:6px}#mobileGroup{grid-column:1/-1;max-width:100%;width:100%}#overview{justify-self:start}}
 </style></head>
 <body><header id="head"><h1>Study previews</h1><select id="study" aria-label="Study"></select><select id="wording" aria-label="Wording version" hidden><option value="touch">Touch wording</option><option value="loves">Loves/likes wording</option></select><a class="play" id="play" target="_blank" rel="noopener">▶ Play from beginning</a></header>
 <main><nav class="rail" aria-label="Slide thumbnails"><div class="railhead"><select id="group" aria-label="Jump to a story"></select></div><div class="tiles" id="rail"></div></nav>

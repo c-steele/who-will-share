@@ -12,13 +12,16 @@ const wording = element('wording');
 const stories = element('story');
 const tray = element('thumbnails');
 let deck, activeIndex = 0, tiles = [], sections = [], pending = 0;
+const back = element('goBack');
+const skip = element('goSkip');
+let pages = [], loading = false;
 let jumpNumber = 0;
 
 function familyURL(address) {
   const url = new URL(address);
   if (deck.id !== obligation) {
-    url.searchParams.set('researcherTools', '0');
-    url.searchParams.delete('researcherToolbar');
+    url.searchParams.set('researcherTools', '1');
+    url.searchParams.set('researcherToolbar', 'back-skip');
     url.searchParams.set('downloadData', '0');
     url.searchParams.set('showDataStatus', '0');
     url.searchParams.set('syntheticSpeech', '0');
@@ -27,12 +30,17 @@ function familyURL(address) {
 }
 
 function loadStudy(address) {
+  loading = true;
+  updateButtons();
   frame.contentWindow.location.replace(familyURL(address));
 }
 
 function setStudy(id) {
   ++jumpNumber;
   deck = findStudy(id) || library[0];
+  pages = deck.groups.flatMap((group, groupIndex) =>
+    group.slides.map((slide, local) => ({slide, groupIndex, local}))
+  );
   activeIndex = 0;
   tiles = [];
   sections = [];
@@ -52,6 +60,7 @@ function setStudy(id) {
 }
 
 function studyPosition() {
+  if (loading) return null;
   if (deck.id === obligation) return window.obligationPreview.readIndex(frame);
   try {
     return frame.contentWindow.familyPreviewPosition?.() ?? null;
@@ -60,11 +69,16 @@ function studyPosition() {
   }
 }
 
-// The narrated tasks advance on their own as well as on a click. Read the
-// running task's position only when opening the drawer; do not restart it.
+// The family can advance normally while the preview toolbar stays in sync.
+function updateButtons() {
+  const index = studyPosition();
+  back.disabled = !Number.isInteger(index) || index <= 0;
+  skip.disabled = !Number.isInteger(index) || index >= pages.length - 1;
+}
 frame.addEventListener('load', () => {
   const doc = frame.contentDocument;
   if (!doc?.head || doc.URL === 'about:blank') return;
+  loading = false;
   if (deck?.id === obligation) {
     // This public draft also has a button for its technical storyboard.
     // Keep its controls available to the slide picker without exposing that exit to families.
@@ -72,8 +86,13 @@ frame.addEventListener('load', () => {
     if (researcherView) researcherView.style.display = 'none';
     return;
   }
-  const readPosition = frame.contentDocument.createElement('script');
-  readPosition.textContent = "window.familyPreviewPosition = () => typeof currentPreviewIndex === 'number' ? currentPreviewIndex : null;";
+  // Expose one set of controls above the family view. Use the task's own skip
+  // implementation so moving past a question never selects an answer.
+  const style = doc.createElement('style');
+  style.textContent = '.ksize-researcher-tools { display: none !important }';
+  doc.head.appendChild(style);
+  const readPosition = doc.createElement('script');
+  readPosition.textContent = "window.familyPreviewPosition = () => typeof currentPreviewIndex === 'number' && typeof totalPreviewScreens === 'number' && totalPreviewScreens > 0 ? currentPreviewIndex : null;";
   frame.contentDocument.head.appendChild(readPosition);
   readPosition.remove();
 });
@@ -86,23 +105,46 @@ function note(message) {
   pending = setTimeout(() => {notice.hidden = true}, 8500);
 }
 
-async function choose(index, group, local, slide) {
+async function choose(index) {
+  if (!pages[index]) return;
+  const {slide, groupIndex, local} = pages[index];
   const requested = ++jumpNumber;
   const position = studyPosition();
-  panel.close();
+  if (panel.open) panel.close();
   if (position === index) return;
   activeIndex = index;
   if (deck.id !== obligation) {
     loadStudy(slide.url);
     return;
   }
+  loading = true;
+  updateButtons();
   try {
-    await window.obligationPreview.jumpTo(frame, group, local, slide.label, index);
+    await window.obligationPreview.jumpTo(frame, groupIndex, local, slide.label, index);
   } catch (error) {
     if (requested === jumpNumber && error.name !== 'AbortError') {
-      note('This slide could not open. Open Slides to try again.');
+      note('This slide could not open. Choose it again in the slide navigator.');
+    }
+  } finally {
+    if (requested === jumpNumber) {
+      loading = false;
+      updateButtons();
     }
   }
+}
+
+function browse(offset) {
+  const index = studyPosition();
+  if (!Number.isInteger(index) || !pages[index + offset]) return;
+  if (offset === 1 && deck.id !== obligation) {
+    const nativeSkip = frame.contentDocument?.querySelector('.ksize-researcher-skip');
+    if (nativeSkip && !nativeSkip.disabled) {
+      nativeSkip.click();
+      updateButtons();
+      return;
+    }
+  }
+  choose(index + offset);
 }
 
 function buildTray() {
@@ -117,7 +159,7 @@ function buildTray() {
     section.append(heading, grid);
     tray.appendChild(section);
     sections.push(section);
-    group.slides.forEach((slide, local) => {
+    group.slides.forEach(slide => {
       const index = tiles.length;
       const button = document.createElement('button');
       button.className = 'tile';
@@ -131,7 +173,7 @@ function buildTray() {
       image.src = slide.img;
       button.append(image, number, document.createTextNode(slide.label));
       button.setAttribute('aria-label', 'Slide ' + (index + 1) + '. ' + slide.label);
-      button.addEventListener('click', () => choose(index, groupIndex, local, slide));
+      button.addEventListener('click', () => choose(index));
       grid.appendChild(button);
       tiles.push(button);
     });
@@ -160,6 +202,9 @@ stories.onchange = () => {
   section.scrollIntoView({block: 'start'});
   section.querySelector('button')?.focus({preventScroll: true});
 };
+back.onclick = () => browse(-1);
+skip.onclick = () => browse(1);
+setInterval(() => {if (!document.hidden) updateButtons()}, 150);
 element('showSlides').onclick = showSlides;
 element('close').onclick = () => panel.close();
 panel.addEventListener('click', event => {

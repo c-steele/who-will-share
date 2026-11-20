@@ -4,17 +4,19 @@ body {margin: 0; background: #fff; height: 100vh; height: 100dvh; display: grid;
 #studyFrame {border: 0; width: 100%; height: 100%; min-height: 0; display: block; background: #fff}
 button, select {font: inherit}
 button {cursor: pointer}
-.preview-toolbar {display: flex; align-items: center; gap: 6px; padding: max(6px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 6px max(12px, env(safe-area-inset-left)); background: #f6f9fc; border-bottom: 1px solid #cbd5df}
+.preview-toolbar {position: relative; display: flex; justify-content: center; align-items: center; gap: 6px; padding: max(6px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 6px max(12px, env(safe-area-inset-left)); background: #f6f9fc; border-bottom: 1px solid #cbd5df}
 .preview-toolbar button {display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; min-height: 36px; padding: 5px 12px; border: 1px solid #9cadbb; border-radius: 7px; background: #fff; color: #233e54; font-size: 14px; font-weight: 600}
 .preview-toolbar button:hover:enabled {background: #e7f0f7}
 .preview-toolbar button:disabled {color: #657785; background: #eff3f6; border-color: #d0d9df; cursor: default}
 #showSlides {background: #185986; border-color: #185986; color: #fff; margin-right: 4px}
 #showSlides:hover {background: #10456b}
-.toolbar-label {margin-left: auto; color: #53697b; font-size: 13px}
+.toolbar-label {position: absolute; right: max(12px, env(safe-area-inset-right)); color: #53697b; font-size: 13px}
 @media (max-width: 460px) {
   .preview-toolbar {gap: 4px; padding-left: max(6px, env(safe-area-inset-left)); padding-right: max(6px, env(safe-area-inset-right))}
   .preview-toolbar button {padding: 5px 9px; min-height: 42px}
   #showSlides {margin-right: 1px}
+}
+@media (max-width: 640px) {
   .toolbar-label {display: none}
 }
 button:focus-visible,select:focus-visible {outline: 3px solid #2172a4; outline-offset: 2px}
